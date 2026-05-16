@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="番茄钟">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍅</text></svg>">
+  <title>番茄钟</title>
+  <style>
+    :root {
+      --focus: #e94560;
+      --break: #2ecc71;
+      --bg: #1a1a2e;
+      --card: #16213e;
+      --text: #eee;
+      --sub: #aaa;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: 20px;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    .title {
+      font-size: 13px;
+      letter-spacing: 6px;
+      color: var(--sub);
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    /* Mode tabs */
+    .mode-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 14px;
+      padding: 4px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 14px 6px;
+      border: none;
+      border-radius: 11px;
+      background: transparent;
+      color: var(--sub);
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.25s;
+      font-weight: 500;
+      white-space: nowrap;
+      letter-spacing: 2px;
+    }
+
+    .tab.active.focus-mode { background: var(--focus); color: #fff; }
+    .tab.active.break-mode { background: var(--break); color: #fff; }
+
+    /* Time input */
+    .time-input-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .time-input {
+      width: 100px;
+      height: 56px;
+      text-align: center;
+      font-size: 36px;
+      font-weight: 300;
+      font-variant-numeric: tabular-nums;
+      background: rgba(255,255,255,0.06);
+      border: 2px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      color: #fff;
+      outline: none;
+      transition: all 0.2s;
+      font-family: inherit;
+      -moz-appearance: textfield;
+    }
+
+    .time-input::-webkit-outer-spin-button,
+    .time-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .time-input:focus {
+      border-color: var(--focus);
+      background: rgba(255,255,255,0.1);
+    }
+
+    .spin-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.15);
+      background: transparent;
+      color: #ccc;
+      font-size: 28px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      line-height: 1;
+      padding: 0;
+      flex-shrink: 0;
+    }
+
+    .spin-btn:hover { background: rgba(255,255,255,0.08); }
+    .spin-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.15); }
+
+    .time-unit {
+      font-size: 16px;
+      color: var(--sub);
+      letter-spacing: 1px;
+    }
+
+    /* Timer ring */
+    .timer-wrap {
+      position: relative;
+      width: 260px;
+      height: 260px;
+      margin: 0 auto 32px;
+    }
+
+    .timer-wrap svg {
+      transform: rotate(-90deg);
+      width: 260px;
+      height: 260px;
+    }
+
+    .ring-bg {
+      fill: none;
+      stroke: rgba(255,255,255,0.08);
+      stroke-width: 8;
+    }
+
+    .ring-progress {
+      fill: none;
+      stroke: var(--focus);
+      stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.4s linear;
+    }
+
+    .ring-progress.break { stroke: var(--break); }
+
+    .timer {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 56px;
+      font-weight: 300;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -1px;
+      color: #fff;
+      line-height: 1;
+    }
+
+    /* Buttons */
+    .buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .btn {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.15);
+      background: transparent;
+      color: var(--text);
+      font-size: 22px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn:active { transform: scale(0.92); }
+
+    .btn-start {
+      background: var(--focus);
+      border-color: var(--focus);
+      color: #fff;
+      width: auto;
+      padding: 0 40px;
+      border-radius: 28px;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      height: 56px;
+    }
+
+    .btn-start.pause {
+      background: #f39c12;
+      border-color: #f39c12;
+    }
+
+    .session-count {
+      margin-top: 24px;
+      color: var(--sub);
+      font-size: 14px;
+      letter-spacing: 1px;
+    }
+
+    .session-count span { font-weight: 700; color: var(--text); }
+
+    /* Fullscreen alert overlay */
+    .overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      width: 100vw; height: 100vh;
+      width: 100dvw; height: 100dvh;
+      background: rgba(0,0,0,0.94);
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.35s ease;
+      padding: 40px;
+    }
+
+    .overlay.hidden { display: none; }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .overlay .alert-icon {
+      font-size: 100px;
+      margin-bottom: 24px;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50%      { transform: scale(1.12); opacity: 0.7; }
+    }
+
+    .overlay .alert-msg {
+      font-size: 32px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 3px;
+      margin-bottom: 12px;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .overlay .alert-sub {
+      font-size: 16px;
+      color: #aaa;
+      letter-spacing: 1px;
+      margin-bottom: 40px;
+      text-align: center;
+    }
+
+    .overlay .alert-btn {
+      padding: 16px 72px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 3px;
+    }
+
+    .overlay .alert-btn:active {
+      background: rgba(255,255,255,0.25);
+      transform: scale(0.96);
+    }
+
+    /* Install banner */
+    .install-banner {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--card);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 1000;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      animation: slideUp 0.3s ease;
+    }
+
+    .install-banner.hidden { display: none; }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .install-banner .install-text {
+      font-size: 14px;
+      color: #ccc;
+      line-height: 1.4;
+    }
+
+    .install-banner .install-btn {
+      padding: 10px 20px;
+      border-radius: 20px;
+      background: var(--focus);
+      color: #fff;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      letter-spacing: 1px;
+    }
+
+    .install-banner .install-close {
+      background: none;
+      border: none;
+      color: #666;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="title">Pomodoro</div>
+
+  <div class="mode-tabs">
+    <button class="tab active focus-mode" id="tabFocus">专注</button>
+    <button class="tab break-mode" id="tabBreak">休息</button>
+  </div>
+
+  <div class="time-input-wrap">
+    <button class="spin-btn" id="btnMinus">−</button>
+    <input type="number" class="time-input" id="timeInput" value="25" min="1" max="120" step="1" inputmode="numeric">
+    <button class="spin-btn" id="btnPlus">+</button>
+    <span class="time-unit">分钟</span>
+  </div>
+
+  <div class="timer-wrap" id="timerWrap">
+    <svg viewBox="0 0 260 260">
+      <circle class="ring-bg" cx="130" cy="130" r="120"/>
+      <circle class="ring-progress" id="ring" cx="130" cy="130" r="120"
+              stroke-dasharray="753.98" stroke-dashoffset="0"/>
+    </svg>
+    <div class="timer" id="timer">25:00</div>
+  </div>
+
+  <div class="buttons">
+    <button class="btn btn-start" id="btnStart">开始</button>
+    <button class="btn" id="btnReset" title="重置">↺</button>
+  </div>
+
+  <div class="session-count" id="sessionCount">完成专注：<span>0</span> 次</div>
+</div>
+
+<!-- Fullscreen alert -->
+<div class="overlay hidden" id="overlay">
+  <div class="alert-icon" id="alertIcon"></div>
+  <div class="alert-msg" id="alertMsg"></div>
+  <div class="alert-sub" id="alertSub"></div>
+  <button class="alert-btn" id="btnDismiss">我知道了</button>
+</div>
+
+<!-- Install banner -->
+<div class="install-banner hidden" id="installBanner">
+  <span class="install-text">添加到主屏幕，<br>像 App 一样使用</span>
+  <button class="install-btn" id="btnInstall">安装</button>
+  <button class="install-close" id="btnInstallClose">✕</button>
+</div>
+
+<script>
+  const CIRCLE = 753.98; // 2π × 120
+
+  // DOM
+  const timerEl    = document.getElementById('timer');
+  const ringEl     = document.getElementById('ring');
+  const btnStart   = document.getElementById('btnStart');
+  const btnReset   = document.getElementById('btnReset');
+  const sessionEl  = document.getElementById('sessionCount');
+  const tabFocus   = document.getElementById('tabFocus');
+  const tabBreak   = document.getElementById('tabBreak');
+  const timeInput  = document.getElementById('timeInput');
+  const btnMinus   = document.getElementById('btnMinus');
+  const btnPlus    = document.getElementById('btnPlus');
+  const timerWrap  = document.getElementById('timerWrap');
+  const overlay    = document.getElementById('overlay');
+  const alertIcon  = document.getElementById('alertIcon');
+  const alertMsg   = document.getElementById('alertMsg');
+  const alertSub   = document.getElementById('alertSub');
+  const btnDismiss = document.getElementById('btnDismiss');
+
+  // State
+  let mode = 'focus';
+  let totalSeconds = 25 * 60;
+  let timeLeft = totalSeconds;
+  let intervalId = null;
+  let running = false;
+  let sessions = 0;
+
+  function format(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+
+  function updateDisplay() {
+    timerEl.textContent = format(timeLeft);
+    document.title = format(timeLeft) + ' - 番茄钟';
+    const offset = CIRCLE * (1 - timeLeft / totalSeconds);
+    ringEl.style.strokeDashoffset = offset;
+  }
+
+  function setModeUI() {
+    tabFocus.classList.toggle('active', mode === 'focus');
+    tabFocus.classList.toggle('focus-mode', mode === 'focus');
+    tabBreak.classList.toggle('active', mode === 'break');
+    tabBreak.classList.toggle('break-mode', mode === 'break');
+    ringEl.classList.toggle('break', mode === 'break');
+    timeInput.value = totalSeconds / 60;
+    btnStart.style.background = mode === 'focus' ? 'var(--focus)' : 'var(--break)';
+    btnStart.style.borderColor = mode === 'focus' ? 'var(--focus)' : 'var(--break)';
+  }
+
+  function applyTime(minutes) {
+    if (running) pause();
+    totalSeconds = minutes * 60;
+    timeLeft = totalSeconds;
+    timeInput.value = minutes;
+    updateDisplay();
+  }
+
+  function switchMode(newMode) {
+    if (running) pause();
+    mode = newMode;
+    const minutes = parseInt(timeInput.value) || (newMode === 'focus' ? 25 : 5);
+    totalSeconds = minutes * 60;
+    timeLeft = totalSeconds;
+    timeInput.value = minutes;
+    setModeUI();
+    updateDisplay();
+  }
+
+  function playAlarm() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const notes = mode === 'focus'
+        ? [880, 660, 880, 660, 880, 660, 880, 1100]
+        : [523, 659, 784, 1047];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.10, ctx.currentTime + i * 0.18);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.18 + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + i * 0.18);
+        osc.stop(ctx.currentTime + i * 0.18 + 0.35);
+      });
+    } catch(e) { /* audio not available */ }
+  }
+
+  function finish() {
+    pause();
+    running = false;
+
+    if (mode === 'focus') {
+      sessions++;
+      sessionEl.innerHTML = '完成专注：<span>' + sessions + '</span> 次';
+      alertIcon.textContent = '☕';
+      alertMsg.textContent = '工作时间过长，该起身休息啦';
+      alertSub.textContent = '站起来活动一下，看看远处，放松眼睛';
+    } else {
+      alertIcon.textContent = '💪';
+      alertMsg.textContent = '休息时间结束，开始奋斗啦';
+      alertSub.textContent = '精力已恢复，继续专注工作吧';
+    }
+    overlay.classList.remove('hidden');
+    playAlarm();
+
+    // Vibrate on mobile
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200, 100, 400]);
+    }
+  }
+
+  function tick() {
+    timeLeft--;
+    updateDisplay();
+    if (timeLeft <= 0) finish();
+  }
+
+  function start() {
+    if (running) return;
+    if (timeLeft <= 0) timeLeft = totalSeconds;
+    running = true;
+    btnStart.textContent = '暂停';
+    btnStart.classList.add('pause');
+    // Need to resume audio context on first interaction
+    if (window.AudioContext || window.webkitAudioContext) {
+      new (window.AudioContext || window.webkitAudioContext)();
+    }
+    intervalId = setInterval(tick, 1000);
+  }
+
+  function pause() {
+    if (!running) return;
+    running = false;
+    btnStart.textContent = '开始';
+    btnStart.classList.remove('pause');
+    clearInterval(intervalId);
+    intervalId = null;
+  }
+
+  function reset() {
+    pause();
+    timeLeft = totalSeconds;
+    updateDisplay();
+  }
+
+  // Event bindings
+  btnStart.addEventListener('click', () => running ? pause() : start());
+  btnReset.addEventListener('click', reset);
+  btnDismiss.addEventListener('click', () => overlay.classList.add('hidden'));
+
+  tabFocus.addEventListener('click', () => { if (mode !== 'focus') switchMode('focus'); });
+  tabBreak.addEventListener('click', () => { if (mode !== 'break') switchMode('break'); });
+
+  // +/- buttons
+  btnMinus.addEventListener('click', () => {
+    let v = parseInt(timeInput.value) || 1;
+    if (v > 1) { v--; applyTime(v); }
+  });
+  btnPlus.addEventListener('click', () => {
+    let v = parseInt(timeInput.value) || 1;
+    if (v < 120) { v++; applyTime(v); }
+  });
+
+  // Direct input
+  timeInput.addEventListener('change', () => {
+    let v = parseInt(timeInput.value);
+    if (isNaN(v) || v < 1) v = 1;
+    if (v > 120) v = 120;
+    applyTime(v);
+  });
+
+  // Scroll wheel on input
+  timeInput.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    let v = parseInt(timeInput.value) || 1;
+    if (e.deltaY < 0 && v < 120) v++;
+    else if (e.deltaY > 0 && v > 1) v--;
+    applyTime(v);
+  });
+
+  // Touch-based "scroll" on timer display (swipe up/down to adjust time)
+  let touchStartY = 0;
+  timerWrap.addEventListener('touchstart', (e) => {
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  timerWrap.addEventListener('touchend', (e) => {
+    const dy = touchStartY - e.changedTouches[0].clientY;
+    if (Math.abs(dy) < 20) return; // ignore small swipes
+    let v = parseInt(timeInput.value) || 1;
+    if (dy > 0 && v < 120) v++;
+    else if (dy < 0 && v > 1) v--;
+    timeInput.value = v;
+    applyTime(v);
+  });
+
+  // PWA install prompt
+  let deferredPrompt = null;
+  const installBanner = document.getElementById('installBanner');
+  const btnInstall = document.getElementById('btnInstall');
+  const btnInstallClose = document.getElementById('btnInstallClose');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBanner.classList.remove('hidden');
+  });
+
+  btnInstall.addEventListener('click', () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => {
+        deferredPrompt = null;
+        installBanner.classList.add('hidden');
+      });
+    }
+  });
+
+  btnInstallClose.addEventListener('click', () => {
+    installBanner.classList.add('hidden');
+  });
+
+  // Register service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+
+  // Init
+  setModeUI();
+  updateDisplay();
+</script>
+</body>
+</html>

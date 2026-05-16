@@ -1,0 +1,21 @@
+{
+  "name": "pomodoro-pwa",
+  "version": "1.0.0",
+  "description": "番茄钟 PWA - 手机端专注计时器",
+  "scripts": {
+    "start": "npx serve . -l 3000 --no-request-logging",
+    "start:local": "npx serve . -l 3000 -s --no-request-logging"
+  },
+  "keywords": [
+    "pomodoro",
+    "pwa",
+    "timer"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
+    "@capacitor/ios": "^8.3.4"
+  }
+}
